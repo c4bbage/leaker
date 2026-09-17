@@ -1,0 +1,17 @@
+{
+  "xf-task": {
+    "requires": [
+      "xf-detail"
+    ]
+  },
+  "xf-implement": {
+    "requires": [
+      "xf-detail"
+    ]
+  },
+  "xf-archive": {
+    "requires": [
+      "xf-detail"
+    ]
+  }
+}

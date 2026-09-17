@@ -1,0 +1,160 @@
+# xflow 模板目录索引（机器可读 SSOT）
+#
+# 用途：所有消费方（xf-manifest.mjs / xf-scaffold.mjs / xf-validate.mjs / xf-archive.mjs）
+# 从此文件查询 module_type → 文件清单 的映射。
+#
+# 更新规则：
+#   - 新增 module_type → 在此文件新增顶层键，补全 description 和 files
+#   - 新增/删除某类型的某文件 → 在对应 module_type 的 files 下增删条目
+#   - **禁止** AI 未经允许修改此文件
+#
+# 字段说明：
+#   description:  类型定位（一句话），与 CATALOG.md 中的叙述保持一致
+#   validations:  （可选）该 module_type 的校验覆写开关，xf-validate.mjs 消费
+#     skip_required_sections: true
+#                 跳过"章节结构必须与 .xflow/templates/<type>/*.md 模板对齐"这条规则。
+#                 适用于"章节 SSOT 在模块类型之外（由外部工具/生成器维护）"的场景：
+#                 文件内容由外部工具生成并已自行做过语义校验，
+#                 xflow 只做机械校验（file-exists / no-placeholder / no-empty-section），
+#                 章节结构合规责任交回生成方。
+#   files:        <文件名> → { status, phase }
+#     status:     required  xflow 提供模板，必有（缺失会触发 validate FAIL，scaffold 铺骨架）
+#                 optional  xflow 提供模板，按需（缺失忽略，scaffold 铺骨架供人/AI 选择填写）
+#                 dynamic   SKILL / 外部工具运行时按需产出（scaffold 跳过铺骨架，缺失忽略，
+#                           approve 把它视为本阶段产出，实际存在则 ✓ 计入清单）
+#     phase:      clarify / design / detail / task
+#                 决定该文件在哪个阶段生成和校验
+#
+#   决策 SOP（新增文件时给同事看的 30 秒指南）：
+#     1. xflow 要不要给这个文件铺空骨架？
+#        - 不要（SKILL/外部工具会自己产出）→ status: dynamic
+#        - 要 → 进入 2
+#     2. 缺这个文件，xflow 自检要不要报 FAIL？
+#        - 要报 → status: required
+#        - 不报 → status: optional
+
+web-backend:
+  description: "Web 后端服务（REST API、分层架构、Controller / Service / Repository）"
+  files:
+    spec.md:
+      status: required
+      phase: clarify
+    hld.md:
+      status: required
+      phase: design
+    design.md:
+      status: required
+      phase: detail
+    data-model.md:
+      status: required
+      phase: detail
+    contracts.md:
+      status: required
+      phase: detail
+    task.md:
+      status: required
+      phase: task
+
+web-frontend:
+  description: "Web 前端界面（SPA / SSR、页面交互、组件体系）"
+  files:
+    spec.md:
+      status: required
+      phase: clarify
+    hld.md:
+      status: required
+      phase: design
+    design.md:
+      status: required
+      phase: detail
+    data-model.md:
+      status: required
+      phase: detail
+    contracts.md:
+      status: required
+      phase: detail
+    task.md:
+      status: required
+      phase: task
+
+native-app:
+  description: "声明式 UI 原生 App（SwiftUI / Jetpack Compose / Flutter / React Native）"
+  files:
+    spec.md:
+      status: required
+      phase: clarify
+    hld.md:
+      status: required
+      phase: design
+    design.md:
+      status: required
+      phase: detail
+    data-model.md:
+      status: required
+      phase: detail
+    task.md:
+      status: required
+      phase: task
+    contracts.md:
+      status: optional
+      phase: detail
+
+ai-agent:
+  description: "AI Agent 架构（推理循环 + 工具调用 + 记忆管理）"
+  files:
+    spec.md:
+      status: required
+      phase: clarify
+    hld.md:
+      status: required
+      phase: design
+    design.md:
+      status: required
+      phase: detail
+    data-model.md:
+      status: required
+      phase: detail
+    evaluation.md:
+      status: required
+      phase: detail
+    task.md:
+      status: required
+      phase: task
+
+systems:
+  description: "系统级后端（Zig / C / Rust，有二进制体积 / RSS / 启动时间硬约束，或主动选择无 GC 运行时）"
+  files:
+    spec.md:
+      status: required
+      phase: clarify
+    hld.md:
+      status: required
+      phase: design
+    design.md:
+      status: required
+      phase: detail
+    data-model.md:
+      status: required
+      phase: detail
+    task.md:
+      status: required
+      phase: task
+
+_default:
+  description: "通用兜底模板（自定义 module_type 未匹配时自动回退到此类型）"
+  files:
+    spec.md:
+      status: required
+      phase: clarify
+    hld.md:
+      status: required
+      phase: design
+    design.md:
+      status: required
+      phase: detail
+    data-model.md:
+      status: optional
+      phase: detail
+    task.md:
+      status: required
+      phase: task

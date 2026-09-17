@@ -1,0 +1,44 @@
+{
+  "ruleset_version": "test-ruleset-1",
+  "from": "2026-09-10T00:00:00Z",
+  "to": "2026-09-12T00:00:00Z",
+  "tables": ["call_logs", "call_traces"],
+  "started_at": "2026-09-12T01:00:00Z",
+  "updated_at": "2026-09-12T01:05:00Z",
+  "finished_at": "2026-09-12T01:05:00Z",
+  "cursors": {},
+  "done": {"call_logs": true, "call_traces": true},
+  "coverage": {
+    "call_logs": {
+      "rows": 500,
+      "with_request_body": 480,
+      "with_response_body": 470,
+      "with_headers": 450,
+      "no_content": 20,
+      "no_content_log_disabled": 15,
+      "no_content_other": 5,
+      "request_parse_failed": 2,
+      "response_parse_failed": 1,
+      "oversize_skipped": 3,
+      "records_with_hits": 3,
+      "auth_header_present": 100,
+      "auth_header_unmasked": 10
+    },
+    "call_traces": {
+      "rows": 300,
+      "with_request_body": 290,
+      "with_response_body": 0,
+      "with_headers": 280,
+      "no_content": 5,
+      "no_content_log_disabled": 3,
+      "no_content_other": 2,
+      "request_parse_failed": 0,
+      "response_parse_failed": 0,
+      "oversize_skipped": 0,
+      "records_with_hits": 1,
+      "auth_header_present": 0,
+      "auth_header_unmasked": 0
+    }
+  },
+  "errors": ["读取 api_keys 失败，无法区分日志关闭原因、无法确认本网关 Key：dial tcp: i/o timeout"]
+}

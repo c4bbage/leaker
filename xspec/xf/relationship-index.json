@@ -1,0 +1,21 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-09-16T10:19:06.986Z",
+  "coverage": {
+    "overall": "complete",
+    "modules": {}
+  },
+  "validation_context": {
+    "fr_to_ac": {
+      "baseline_referenced_ac_keys": [],
+      "change_added_ac_keys": [],
+      "change_overwritten_ac_keys": []
+    }
+  },
+  "snapshot_context": {
+    "build_mode": "manual",
+    "node": null
+  },
+  "nodes": {},
+  "edges": []
+}

@@ -1,0 +1,227 @@
+# doc-quality-rules.yaml — 制品质量标准规则库（flow 无关，唯一判据源 SSOT）
+#
+# 定位：doc-quality-standards.md 的机器可读落地。xf-quality.mjs 消费本文件。
+# 复用：判据只写在这里一处（SSOT），所有 flow / module_type 无条件继承（框架级质量底线）。
+#
+# 字段说明：
+#   name:         短名（Web 展示 / <node>.json 的 name 字段）
+#   level:        blocking(🔴阻断，未过则门禁不放行) | advisory(🟡建议，不阻断)
+#   phase:        适用节点(id)列表；引擎按 --node 过滤（xf-clarify 与 clarify 互为别名）
+#   artifact:     挂靠制品文件名；"*.md"=该模块全部 md 制品；[]=模块级(不挂文件，CODE 组)
+#   related:      跨制品对照的上游依赖（引擎读入供 handler 抽 cross_ref；judge 复核）
+#   check_kind:   script          → L1 脚本直接判 pass/fail（零 LLM）
+#                 script_evidence → L1 部分判：全对 pass，有疑似抽证据 need_judge
+#                 semantic        → L2 脚本只抽 cross_ref 证据，恒 need_judge，独立裁判判
+#   description:  交给裁判的判据（evidence.instruction 默认取此）
+#   config:       可调参数（黑名单/命令清单等，跨技术栈覆盖用）
+
+version: "0.1-mvp"
+
+rules:
+  # ── G 通用维度（所有 md 制品）─────────────────────────────────────────
+  G-1:
+    name: "模板必填板块齐全"
+    level: blocking
+    phase: [xf-clarify, xf-brainstorm, xf-design, xf-detail, xf-task]
+    artifact: ["*.md"]
+    check_kind: script
+    description: "模板必填板块齐全，无缺失章节（按 module_type 模板对照）"
+
+  G-2:
+    name: "无占位符/TODO 残留"
+    level: blocking
+    phase: [xf-clarify, xf-brainstorm, xf-design, xf-detail, xf-task]
+    artifact: ["*.md"]
+    check_kind: script
+    description: "无 [MODULE_NAME]/<…>/TODO/模板示例文字残留"
+
+  G-3:
+    name: "必填板块非空"
+    level: blocking
+    phase: [xf-clarify, xf-brainstorm, xf-design, xf-detail, xf-task]
+    artifact: ["*.md"]
+    check_kind: script
+    description: "必填板块不得为空；不适用须写「不适用 + 一句理由」"
+
+  G-5:
+    name: "无模糊定量表述"
+    level: blocking
+    phase: [xf-clarify, xf-brainstorm, xf-design, xf-detail]
+    artifact: ["*.md"]
+    check_kind: script_evidence
+    description: "判断/定量表述不得含模糊词；确需定量处给数值或明确条件"
+    config:
+      blacklist:
+        - "若干"
+        - "适当"
+        - "合理"
+        - "尽可能"
+        - "大量"
+        - "部分"
+        - "如有必要"
+        - "正常情况"
+        - "一般来说"
+        - "较快"
+        - "较好"
+        - "高并发"
+
+  # ── S 需求规范（spec.md / spec.delta.md）──────────────────────────────
+  S-6:
+    name: "AC 编号+优先级"
+    level: blocking
+    phase: [xf-clarify, xf-brainstorm]
+    artifact: [spec.md, spec.delta.md]
+    check_kind: script
+    description: "AC 全部编号（AC-XX）且标注优先级（P0/P1/P2）"
+
+  S-7:
+    name: "AC 三要素"
+    level: blocking
+    phase: [xf-clarify, xf-brainstorm]
+    artifact: [spec.md, spec.delta.md]
+    check_kind: script_evidence
+    description: "每条 AC 具备 Given/When/Then 三要素，Then 可观测"
+
+  S-8:
+    name: "AC 覆盖功能点"
+    level: blocking
+    phase: [xf-clarify, xf-brainstorm]
+    artifact: [spec.md, spec.delta.md]
+    check_kind: semantic
+    description: "每个功能点至少 1 条 AC；每个 P0 功能点必须有 P0 AC"
+
+  # ── H 概要设计（hld.md）──────────────────────────────────────────────
+  H-3:
+    name: "功能点→架构落点"
+    level: blocking
+    phase: [xf-design]
+    artifact: [hld.md, hld.delta.md]
+    related: [spec.md, spec.delta.md]
+    check_kind: semantic
+    description: "spec 每个功能点在 hld 架构范围内有落点，无遗漏"
+
+  H-4:
+    name: "架构方向已选定"
+    level: blocking
+    phase: [xf-design]
+    artifact: [hld.md, hld.delta.md]
+    related: [constitution.md]
+    check_kind: semantic
+    description: "架构方向已选定；多方向时记录备选及风险；选定理由引用宪章约束或需求特征"
+
+  # ── D 详细设计（design.md）───────────────────────────────────────────
+  D-3:
+    name: "AC 实现落点"
+    level: blocking
+    phase: [xf-detail]
+    artifact: [design.md, design.delta.md]
+    related: [spec.md, spec.delta.md, contracts.md, data-model.md]
+    check_kind: semantic
+    description: "每条 P0/P1 AC 能找到明确实现落点（组件/接口/数据结构）；不实现的 P2 AC 须显式声明"
+
+  # ── DM 数据模型（data-model.md）──────────────────────────────────────
+  DM-6:
+    name: "字段引用可定位"
+    level: blocking
+    phase: [xf-detail]
+    artifact: [data-model.md]
+    related: [contracts.md, design.md]
+    check_kind: semantic
+    description: "contracts/design 中引用的每个字段均可在 data-model 定位（无孤悬字段）"
+
+  # ── C 接口契约（contracts.md）────────────────────────────────────────
+  C-1:
+    name: "接口六要素"
+    level: blocking
+    phase: [xf-detail]
+    artifact: [contracts.md]
+    check_kind: script_evidence
+    description: "每个接口六要素完整：方法/路径/入参/响应/错误码/鉴权"
+    config:
+      dimensions:
+        method: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        path: ["/api", "/v1", "path", "路径"]
+        request: ["请求", "参数", "入参", "Request", "Body"]
+        response: ["响应", "返回", "Response"]
+        error: ["错误码", "error", "错误"]
+        auth: ["鉴权", "认证", "Authorization", "权限", "token"]
+
+  # ── T 任务拆解（task.md）─────────────────────────────────────────────
+  T-1:
+    name: "任务格式完整"
+    level: blocking
+    phase: [xf-task]
+    artifact: [task.md]
+    check_kind: script
+    description: "checkbox + T{NNN}（唯一、T001 起）+ 优先级 + 描述 + 具体文件路径"
+
+  T-3:
+    name: "AC→任务追溯"
+    level: blocking
+    phase: [xf-task]
+    artifact: [task.md]
+    related: [spec.md, spec.delta.md]
+    check_kind: semantic
+    description: "每个功能任务关联 AC 编号；每条 AC 有对应任务（P0 缺失=高危）"
+
+  T-6:
+    name: "依赖方向合规"
+    level: blocking
+    phase: [xf-task]
+    artifact: [task.md]
+    related: [PRODUCT.md]
+    check_kind: semantic
+    description: "跨模块依赖符合 PRODUCT.md 声明，无未声明/反向依赖、无环"
+
+  # ── CODE 代码与测试（implement 阶段，模块级，不挂 md）─────────────────
+  CODE-1:
+    name: "构建/测试全绿"
+    level: blocking
+    phase: [xf-implement]
+    artifact: []
+    check_kind: script
+    description: "项目构建、Lint、类型检查、完整测试全部通过，error 为零"
+    config:
+      commands:
+        - "npm run build"
+        - "npm run lint"
+        - "npm run typecheck"
+        - "npm test"
+      timeout_ms: 300000
+
+  CODE-2:
+    name: "测试先行"
+    level: blocking
+    phase: [xf-implement]
+    artifact: []
+    check_kind: semantic
+    description: "每个功能先有失败测试再有实现；禁止先实现后补测试、禁止放宽断言凑绿"
+
+  CODE-5:
+    name: "实现与设计一致"
+    level: blocking
+    phase: [xf-implement]
+    artifact: []
+    related: [contracts.md, data-model.md, spec.md]
+    check_kind: semantic
+    description: "实现符合 spec 行为、contracts 接口、data-model 结构；接口签名与设计一致"
+
+  CODE-6:
+    name: "任务勾选与代码索引一致性"
+    level: advisory
+    phase: [xf-implement]
+    artifact: []
+    check_kind: script
+    description: "task.md 标记 [x] 完成的任务，其声明的代码文件应能在 codegraph 索引中找到；已勾但代码图谱未找到的列入待核实（可能漏提交/漏 sync/路径不符），供自查非裁决"
+
+  # ── R 技术研究（research.md，optional 制品，无则整体 skip）─────────────
+  R-2:
+    name: "研究结论回写"
+    level: blocking
+    phase: [xf-design, xf-detail]
+    artifact: [research.md]
+    related: [hld.md, design.md]
+    check_kind: semantic
+    description: "research.md 结论必须回写到 hld.md/design.md 相应章节"
+    config:
+      optional_skip: true

@@ -1,0 +1,352 @@
+# @layout xf-constitution:312,-110 xf-product:315,62 xf-split:311,192 xf-brainstorm:168,316 xf-clarify:483,313 xf-design:319,446 xf-detail:314,594 xf-task:767,254 xf-implement:770,395 xf-archive:723,561
+# ─────────────────────────────────────────────────────────────────────────────
+# 这是什么：本文件是「当前 xflow SDD 开发流程」的定义（节点 / 依赖 / 门禁 / 校验 /
+#   IO 约束），由 xflow 从 xflow-admin 画布导出，在 init / sync 时缓存到
+#   .xflow/<flow>/Flow.yaml，供 AI 运行时读取各节点的 inputs / outputs 等约束。
+#
+# ⚠️ 名称辨析（重要）：下方 name / displayName / description 描述的是【这套开发流程本身】，
+#   **不是**你正在开发的业务项目。请勿把它们当作项目名写入 constitution.md / PRODUCT.md
+#   等任何制品。项目名应来自项目自身（package.json 的 name、README 标题、项目根目录名）
+#   或由用户确认。
+# ─────────────────────────────────────────────────────────────────────────────
+name: xf
+displayName: 边锋sdd开发流程
+description: 通用sdd开发流程
+workspace:
+  rootDir: xspec/xf/
+  activeDir: changes/
+  sotDir: modules/
+  archiveDir: archive/
+nodes:
+  - id: xf-constitution
+    type: llm-prompt
+    after: []
+    gate: false
+    validation: true
+    mechanicalChecks:
+      fileExists: true
+      noPlaceholder: true
+      requiredSections: true
+      noEmptySection: true
+    outputs:
+      - dir: root
+        artifact: constitution.md
+  - id: xf-product
+    type: llm-prompt
+    after:
+      - xf-constitution
+    gate: false
+    validation: true
+    mechanicalChecks:
+      fileExists: true
+      noPlaceholder: false
+      requiredSections: false
+      noEmptySection: false
+    semanticRules:
+      - id: rule-1788420285664
+        name: 产物检查
+        criteria: |-
+          1. **产物存在性检查**：确认 `xspec/xf/PRODUCT.md` 文件存在。
+             - 若文件不存在，报错并提示用户重新执行步骤 3（首次创建）或步骤 3（修订）。
+          2. **产物非空检查**：确认文件内容非空且包含有效的产品定位信息（至少包含"产品概述"或"目标用户"相关段落）。
+             - 若文件为空或缺少核心段落，报错并提示用户补充。
+    outputs:
+      - dir: root
+        artifact: PRODUCT.md
+  - id: xf-split
+    type: llm-prompt
+    after:
+      - xf-product
+    gate: false
+    validation: false
+  - id: xf-brainstorm
+    type: llm-prompt
+    after:
+      - xf-split
+    gate: false
+    validation: true
+    mechanicalChecks:
+      noPlaceholder: true
+      requiredSections: true
+      noEmptySection: true
+    semanticRules:
+      - id: rule-1788417158793
+        name: 验收标准可衡量性
+        criteria: 节点完成之后需要生成对应需求的spec.md或者spec.delta.md,并且不得含模糊词(等/若干/适当/合理/尽可能/大量/部分),须改为具体数值或明确条件
+      - id: rule-1788417166552
+        name: 需求与宪章一致性
+        criteria: spec.md / spec.delta.md 的功能描述符合constitution.md 核心原则 + 技术约束，不能出出现“需求与宪章禁止项矛盾，或超出宪章技术约束”
+      - id: rule-1788417174953
+        name: 排除项与包含项无交叉
+        criteria: 同一功能不能同时出现在 include 和 exclude
+      - id: rule-1788417185897
+        name: 模块划分与产品定位一致
+        criteria: change.yaml.affected_modules 不得引用 PRODUCT.md 中不存在的模块(新增除外),否则提示先 split
+      - id: rule-1788417198585
+        name: 功能描述无技术泄漏
+        criteria: 功能描述不得出现框架/库名(React/Express/MySQL)、API 路径、数据库表名等实现细节
+      - id: rule-1788417204553
+        name: 产物检查
+        criteria: >-
+          ## 产物强制（不可跳过 · 完成前自查）
+
+
+          本节点**必须**为 `change.yaml.affected_modules` 里的**每一个**模块生成需求规范文件，一个都不能少。生成规则严格按 `change_type` 区分：
+
+
+          | change_type | 必须生成的文件 | 完整路径（从仓库根起算） |
+
+          | :--- | :--- | :--- |
+
+          | `added`（新增模块） | `spec.md` | `xspec/xf/changes/<module>/spec.md` |
+
+          | `modified`（变更模块） | `spec.delta.md` | `xspec/xf/changes/<module>/spec.delta.md` |
+
+
+          **硬规则：**
+
+
+          1. **禁止**在未生成上述文件的情况下输出「完成报告」或提示进入下一步。
+
+          2. 逐模块自查：对 `affected_modules` 里的每个模块，确认对应文件**已在磁盘上真实存在**（不是只在对话里写了内容）。任一模块缺文件 → **立即补齐后再继续**。
+
+          3. 路径必须从仓库根 `xspec/xf/changes/` 起算，**禁止**省略 `xspec/xf/` 前缀（否则会在项目根误建 `changes/` 目录）。
+
+          4. `change_type` 以「`xspec/xf/modules/<module>/spec.md` 是否物理存在」为客观判据：存在 → `modified` 写 `spec.delta.md`；不存在 →
+          `added` 写 `spec.md`。不要凭 PRODUCT.md 的注册状态推断。
+
+          5. 完成报告里**必须逐模块列出**已生成的文件路径，格式：
+    loopFrom: xf-archive
+  - id: xf-clarify
+    type: llm-prompt
+    after:
+      - xf-split
+    gate: false
+    validation: true
+    mechanicalChecks:
+      noPlaceholder: true
+      requiredSections: true
+      noEmptySection: true
+    semanticRules:
+      - id: rule-1788417269699
+        name: 验收标准可衡量性
+        criteria: 节点完成之后需要生成对应需求的spec.md或者spec.delta.md,并且不得含模糊词(等/若干/适当/合理/尽可能/大量/部分),须改为具体数值或明确条件
+      - id: rule-1788417274512
+        name: 需求与宪章一致性
+        criteria: spec.md / spec.delta.md 的功能描述符合constitution.md 核心原则 + 技术约束，不能出出现“需求与宪章禁止项矛盾，或超出宪章技术约束”
+      - id: rule-1788417311801
+        name: 排除项与包含项无交叉
+        criteria: 同一功能不能同时出现在 include 和 exclude
+      - id: rule-1788417320841
+        name: 模块划分与产品定位一致
+        criteria: change.yaml.affected_modules 不得引用 PRODUCT.md 中不存在的模块(新增除外),否则提示先 split
+      - id: rule-1788417331465
+        name: 功能描述无技术泄漏
+        criteria: 功能描述不得出现框架/库名(React/Express/MySQL)、API 路径、数据库表名等实现细节
+      - id: rule-1788417340313
+        name: 产物检查
+        criteria: >-
+          ## 产物强制（不可跳过 · 完成前自查）
+
+
+          本节点**必须**为 `change.yaml.affected_modules` 里的**每一个**模块生成需求规范文件，一个都不能少。生成规则严格按 `change_type` 区分：
+
+
+          | change_type | 必须生成的文件 | 完整路径（从仓库根起算） |
+
+          | :--- | :--- | :--- |
+
+          | `added`（新增模块） | `spec.md` | `xspec/xf/changes/<module>/spec.md` |
+
+          | `modified`（变更模块） | `spec.delta.md` | `xspec/xf/changes/<module>/spec.delta.md` |
+
+
+          **硬规则：**
+
+
+          1. **禁止**在未生成上述文件的情况下输出「完成报告」或提示进入下一步。
+
+          2. 逐模块自查：对 `affected_modules` 里的每个模块，确认对应文件**已在磁盘上真实存在**（不是只在对话里写了内容）。任一模块缺文件 → **立即补齐后再继续**。
+
+          3. 路径必须从仓库根 `xspec/xf/changes/` 起算，**禁止**省略 `xspec/xf/` 前缀（否则会在项目根误建 `changes/` 目录）。
+
+          4. `change_type` 以「`xspec/xf/modules/<module>/spec.md` 是否物理存在」为客观判据：存在 → `modified` 写 `spec.delta.md`；不存在 →
+          `added` 写 `spec.md`。不要凭 PRODUCT.md 的注册状态推断。
+
+          5. 完成报告里**必须逐模块列出**已生成的文件路径，格式：
+    loopFrom: xf-archive
+  - id: xf-design
+    type: llm-prompt
+    after:
+      - xf-brainstorm
+      - xf-clarify
+    gate: false
+    validation: true
+    mechanicalChecks:
+      fileExists: true
+      noPlaceholder: true
+      requiredSections: true
+      noEmptySection: true
+    semanticRules:
+      - id: rule-1788417373682
+        name: 技术选型合规
+        criteria: hld.md / hld.delta.md 技术选型必须在 constitution.md 技术约束允许范围内
+      - id: rule-1788417379121
+        name: 技术选型合规
+        criteria: hld.md 技术选型必须在 constitution.md 技术约束允许范围内
+      - id: rule-1788417390569
+        name: 需求到设计覆盖
+        criteria: spec.md 每个功能点都要在 hld.md 有对应架构设计，不得遗漏
+      - id: rule-1788417400801
+        name: 设计决策有理由
+        criteria: hld.md / hld.delta.md 每个架构/选型决策都要有理由
+      - id: rule-1788417405314
+        name: 模块契约不越界
+        criteria: 设计范围不得超出 PRODUCT.md 声明的模块职责
+      - id: rule-1788417420633
+        name: 产物检查
+        criteria: >-
+          ## 产物强制（不可跳过 · 完成前自查）
+
+
+          本节点**必须**为 `change.yaml.affected_modules` 里的**每一个**模块生成概要设计文件，一个都不能少：
+
+
+          | change_type | 必须生成 | 完整路径（从仓库根起算） |
+
+          | :--- | :--- | :--- |
+
+          | `added` | `hld.md` | `xspec/xf/changes/<module>/hld.md` |
+
+          | `modified` | `hld.delta.md` | `xspec/xf/changes/<module>/hld.delta.md` |
+
+
+          **硬规则：**
+
+
+          1. **禁止**在未生成上述文件时输出「完成报告」或提示进入 /xf-detail。
+
+          2. 逐模块自查每个文件**已在磁盘真实存在**；任一缺失，立即补齐再继续。
+
+          3. 路径从 `xspec/xf/changes/` 起算，禁止省略 `xspec/xf/` 前缀。
+
+          4. 完成报告必须逐模块列出已生成的文件路径：已生成产物： - (added) → xspec/xf/changes//hld.md - (modified) →
+          xspec/xf/changes//hld.delta.md
+
+          任一模块无文件，禁止报「完成」，标 ❌ 并说明原因。
+  - id: xf-detail
+    type: llm-prompt
+    after:
+      - xf-design
+    gate: true
+    validation: true
+    mechanicalChecks:
+      fileExists: false
+      noPlaceholder: true
+      requiredSections: true
+      noEmptySection: true
+    semanticRules:
+      - id: rule-1788417476217
+        name: 技术选型合规
+        criteria: design.md 技术选型必须在 constitution.md 技术约束允许范围内
+      - id: rule-1788417482642
+        name: 需求到设计覆盖
+        criteria: spec.md / spec.delta.md 每个功能点都要在 design.md 有对应技术设计，不得遗漏
+      - id: rule-1788417495330
+        name: 数据模型与接口一致
+        criteria: contracts.md 返回字段不得超出 data-model.md 定义（无 contracts.md 时跳过）
+      - id: rule-1788417500073
+        name: 设计决策有理由
+        criteria: design.md / design.delta.md 每个关键设计决策都要有理由
+      - id: rule-1788417512569
+        name: 产物检查
+        criteria: >-
+          ## 产物强制（不可跳过 · 完成前自查）
+
+
+          本节点必须为 `change.yaml.affected_modules` 里**每个**模块，按其 `module_type` 生成 detail 阶段全部 required 文件（added 写全文，modified
+          写 `.delta.md`）。各类型清单：
+
+
+          | module_type | required 产物 |
+
+          | :--- | :--- |
+
+          | web-backend / web-frontend | design.md、data-model.md、contracts.md |
+
+          | native-app | design.md、data-model.md（contracts.md 视有无对外接口，可选） |
+
+          | ai-agent | design.md、data-model.md、evaluation.md |
+
+          | systems | design.md、data-model.md |
+
+          | 自定义/通用类型 | design.md（data-model.md 可选） |
+
+
+          **硬规则：**
+
+          1. 禁止在上述 required 文件未落盘时输出「完成报告」或提示进入 /xf-task。
+
+          2. 逐模块、逐文件自查磁盘真实存在；缺失立即补齐。路径从 `xspec/xf/changes/<module>/` 起算。
+
+          3. 某类型不产出的文件（如 systems 无 contracts.md）无需生成，但要在报告里说明"该类型不涉及"。
+
+          4. 完成报告逐模块列出已生成文件清单，任一 required 缺失禁止报「完成」，标 ❌。
+  - id: xf-task
+    type: llm-prompt
+    after:
+      - xf-detail
+    gate: false
+    validation: true
+    mechanicalChecks:
+      fileExists: false
+      noPlaceholder: true
+      requiredSections: true
+      noEmptySection: true
+    semanticRules:
+      - id: rule-1788417545842
+        name: 跨模块依赖方向合法
+        criteria: depends TNNN@module 必须符合 PRODUCT.md 声明的模块依赖方向，不得未声明/反向/成环。
+  - id: xf-implement
+    type: llm-prompt
+    after:
+      - xf-task
+    gate: false
+    validation: true
+    mechanicalChecks:
+      noPlaceholder: true
+      requiredSections: false
+      noEmptySection: false
+    semanticRules:
+      - id: rule-1788417562218
+        name: task.md 完成度同步
+        criteria: >-
+          change.yaml.affected_modules 中每个模块的 task.md（xspec/xf/changes/<module>/task.md）里，所有 P0 任务必须标记为 [x]（已完成）。允许
+          P1/P2 未勾选但须在报告中注明。若 task.md 中 P0 未勾选数 > 0，不能提示用户进入下一个节点。
+      - id: rule-1788417581857
+        name: 实现与设计结构对齐
+        criteria: >-
+          实际代码目录结构须符合 design.md §5.2 声明的目录结构（如 Feature-based 则 features/ 下须有对应业务域目录；API Service 按后端模块对齐则 services/
+          下须有同名文件）。结构严重偏离即 FAIL。
+      - id: rule-1788417586273
+        name: 任务全部完成
+        criteria: |-
+          满足以下任一条件即判定 FAIL：
+          1.change.yaml.affected_modules 中任一模块的 task.md 存在未标记为 [x] 的任务（包括 P0、P1、P2 全部级别）
+    inputs:
+      - dir: active
+        artifact: hld.md
+  - id: xf-archive
+    type: llm-prompt
+    after:
+      - xf-implement
+    gate: false
+    validation: true
+    semanticRules:
+      - id: rule-1788417607609
+        name: 归档结果检查
+        criteria: 归档完成前，检查xspec/xf/changes/fix.md是否还存在，以及如果归档前存在这个文档，这个文档里面的每笔修复项都归档进入modules。
+visibility:
+  - pattern: "**"
+    read: any_flow
+    write: own_flow

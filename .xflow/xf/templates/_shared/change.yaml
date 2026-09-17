@@ -1,0 +1,47 @@
+# 变更元数据（机器可读）
+# 说明：此文件由 /xf-brainstorm 或 /xf-clarify 生成，后续步骤持续更新 phase 字段。
+#       模板位于 .xflow/templates/_shared/change.yaml
+
+id: "CHG-[YYYYMMDD]-[NNN]"
+name: "[变更名称]"
+description: "[一句话说明这次变更解决什么问题]"
+
+# draft | in-progress | archived
+status: "draft"
+
+# brainstorm → clarify → design → detail → task → implement → archive
+# 初始值取决于入口命令：/xf-brainstorm 设为 brainstorm，/xf-clarify 设为 clarify
+phase: "clarify"
+
+priority: "P0"            # P0 | P1 | P2
+created_at: "[YYYY-MM-DD]"
+updated_at: "[YYYY-MM-DD]"
+author: "[发起人]"
+
+# 原始需求来源。存路径或 URL，不存正文；归档时由 xw-archiver 读取并快照到 archive/source-requirement.md。
+source_doc: "[本地 Markdown / Word 路径或飞书文档 URL]"
+
+# 功能范围边界（/xf-clarify 或 /xf-brainstorm 确认后填写）
+scope:
+  include:
+    - "[确认要做的功能点]"
+  exclude:
+    - "[明确不做的内容]"
+
+affected_modules:
+  - name: "[module-name]"
+    change_type: "added"     # added | modified | removed
+    module_type: "web-backend"  # web-backend | web-frontend | native-app | ai-agent | systems | 自定义类型
+    summary: "[该模块在本次变更中做什么]"
+
+  # - name: "[module-name]"
+  #   change_type: "modified"
+  #   module_type: "web-frontend"
+  #   summary: "[说明]"
+
+# 本次变更依赖哪些已完成的前置变更（可选）
+depends_on: []
+  # - "CHG-YYYYMMDD-NNN"
+
+# 归档时由 /xf-archive 填写
+# archived_at: "[YYYY-MM-DD]"
